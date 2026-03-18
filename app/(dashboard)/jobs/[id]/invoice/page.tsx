@@ -27,6 +27,24 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
     notFound()
   }
 
+  // Fetch company settings
+  const { data: company } = await supabase
+    .from('company_settings')
+    .select('*')
+    .limit(1)
+    .single()
+
+  const companyName = company?.company_name || 'KasperMH Haveservice'
+  const companyCvr = company?.cvr || ''
+  const companyAddress = company?.address || ''
+  const companyPostal = company?.postal_code || ''
+  const companyCity = company?.city || ''
+  const companyLogoUrl = company?.logo_url || ''
+  const bankReg = company?.bank_reg || ''
+  const bankAccount = company?.bank_account || ''
+  const mobilepay = company?.mobilepay_number || ''
+  const invoiceDueDays = company?.invoice_due_days || 14
+
   const services: QuoteLineItem[] = typeof job.services === 'string'
     ? JSON.parse(job.services)
     : job.services
@@ -41,7 +59,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
 
   const dueDate = (() => {
     const d = job.invoice_sent_at ? new Date(job.invoice_sent_at) : new Date()
-    d.setDate(d.getDate() + 14)
+    d.setDate(d.getDate() + invoiceDueDays)
     return formatDanishDate(d.toISOString())
   })()
 
@@ -64,8 +82,16 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-green-700">KasperMH Haveservice</h1>
-            <p className="text-sm text-gray-600 mt-1">Professionel haveservice</p>
+            {companyLogoUrl ? (
+              <img src={companyLogoUrl} alt={companyName} className="h-12 w-auto mb-2" />
+            ) : (
+              <h1 className="text-2xl font-bold text-green-700">{companyName}</h1>
+            )}
+            {companyAddress && (
+              <p className="text-sm text-gray-600 mt-1">
+                {companyAddress}{companyPostal || companyCity ? `, ${companyPostal} ${companyCity}` : ''}
+              </p>
+            )}
           </div>
           <div className="text-right">
             <h2 className="text-3xl font-bold text-gray-800">FAKTURA</h2>
@@ -145,8 +171,13 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         <div className="bg-gray-50 rounded-lg p-4 mb-6 print:bg-gray-100">
           <h3 className="text-sm font-semibold mb-2">Betalingsinformation</h3>
           <div className="text-sm text-gray-600 space-y-1">
-            <p>Reg. nr.: XXXX &nbsp; Kontonr.: XXXXXXXXXX</p>
-            <p>MobilePay: XXXXXXXX</p>
+            {(bankReg || bankAccount) && (
+              <p>Reg. nr.: {bankReg || '—'} &nbsp; Kontonr.: {bankAccount || '—'}</p>
+            )}
+            {mobilepay && <p>MobilePay: {mobilepay}</p>}
+            {!bankReg && !bankAccount && !mobilepay && (
+              <p className="text-muted-foreground italic">Betalingsinfo ikke konfigureret</p>
+            )}
           </div>
           <p className="text-sm text-gray-600 mt-2">
             Betaling bedes foretaget senest {dueDate}
@@ -164,7 +195,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
 
         {/* Footer */}
         <div className="border-t pt-4 text-center text-xs text-gray-500">
-          <p>CVR: XXXXXXXX · KasperMH Haveservice</p>
+          <p>
+            {companyCvr ? `CVR: ${companyCvr} · ` : ''}{companyName}
+          </p>
         </div>
       </div>
     </InvoiceClient>

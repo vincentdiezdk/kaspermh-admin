@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { JobStatusBadge } from '@/components/jobs/job-status-badge'
 import { formatTime, formatPriceShort, unitLabel } from '@/lib/format'
 import { createJob } from '@/lib/actions/jobs'
-import { Plus, ChevronLeft, ChevronRight, List, CalendarDays, Clock, MapPin, Search, X } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, List, CalendarDays, Clock, MapPin, Search, X, Download } from 'lucide-react'
 import Link from 'next/link'
+import { exportJobsCSV } from '@/lib/actions/export'
 import type { Job, JobStatus, QuoteLineItem, Service } from '@/lib/types'
 
 type ViewMode = 'list' | 'week' | 'day'
@@ -150,6 +151,21 @@ export default function JobsPage() {
     return `${DANISH_DAY_SHORT[d.getDay()]} ${d.getDate()}. ${DANISH_MONTHS[d.getMonth()]} ${d.getFullYear()}`
   })()
 
+  const handleExportCSV = async () => {
+    const start = formatDateKey(new Date(new Date().getFullYear(), 0, 1))
+    const end = formatDateKey(new Date(new Date().getFullYear(), 11, 31))
+    try {
+      const csv = await exportJobsCSV(start, end)
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `jobs-${start}-${end}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {}
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -157,6 +173,11 @@ export default function JobsPage() {
           <h2 className="text-2xl font-bold tracking-tight">Jobs</h2>
           <p className="text-muted-foreground">Planlæg og spor opgaver</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportCSV} className="gap-2 min-h-[44px]">
+            <Download className="h-4 w-4" />
+            Eksporter CSV
+          </Button>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger
             render={
@@ -183,6 +204,7 @@ export default function JobsPage() {
             />
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* View mode tabs + status filter */}

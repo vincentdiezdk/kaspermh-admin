@@ -1,5 +1,4 @@
 import { Card, CardContent } from '@/components/ui/card'
-import { Settings } from 'lucide-react'
 import Link from 'next/link'
 
 export default function SettingsPage() {
@@ -13,6 +12,11 @@ export default function SettingsPage() {
       title: 'Køretøjer',
       description: 'Administrer køretøjer og flåde',
       href: '/settings/vehicles',
+    },
+    {
+      title: 'Virksomhed',
+      description: 'Firmaoplysninger, logo og betalingsinfo',
+      href: '/settings/company',
     },
     {
       title: 'Team',
