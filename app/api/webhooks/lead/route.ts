@@ -51,10 +51,10 @@ export async function POST(request: Request) {
     source?: string
   }
 
-  // Validate required fields
-  if (!name || !email || !phone) {
+  // Validate required fields (email is optional for exit-intent leads)
+  if (!name || !phone) {
     return Response.json(
-      { error: 'Manglende felter: name, email, phone er påkrævet' },
+      { error: 'Manglende felter: name og phone er påkrævet' },
       { status: 400 }
     )
   }
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     .from('leads')
     .insert({
       full_name: name,
-      email,
+      email: email || '',
       phone,
       address: address || '',
       service_type: service || null,
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
       const html = adminNotificationEmail({
         type: 'new_lead',
         title: `Nyt lead: ${name}`,
-        details: `Service: ${service || 'Ikke angivet'}\nAreal: ${area_m2 ? area_m2 + ' m\u00B2' : 'Ikke angivet'}\nEst. pris: ${estimated_price ? estimated_price + ' kr' : 'Ikke angivet'}\nTelefon: ${phone}\nEmail: ${email}`,
+        details: `Service: ${service || 'Ikke angivet'}\nAreal: ${area_m2 ? area_m2 + ' m²' : 'Ikke angivet'}\nEst. pris: ${estimated_price ? estimated_price + ' kr' : 'Ikke angivet'}\nTelefon: ${phone}\nEmail: ${email || 'Ikke angivet'}`,
         actionUrl: `${APP_URL}/leads/${lead.id}`,
       })
 
