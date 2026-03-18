@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { triggerQuoteAcceptedEmail } from '@/lib/email/triggers'
+import { notifyAdmins } from '@/lib/notifications'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -89,6 +90,15 @@ export async function GET(request: Request) {
     services: lineItems,
     created_by: quote.created_by,
   })
+
+  // Send in-app notification to admins (non-blocking)
+  void notifyAdmins(
+    supabase,
+    'quote_accepted',
+    `Tilbud ${quote.quote_number} accepteret`,
+    `${customer?.full_name || 'Kunde'} har accepteret tilbuddet`,
+    `/quotes/${quote.id}`
+  ).catch(err => console.error('[Accept Quote] In-app notification failed:', err))
 
   // Send confirmation + admin notification emails (non-blocking)
   void triggerQuoteAcceptedEmail(quote.id, quote.customer_id).catch(err =>

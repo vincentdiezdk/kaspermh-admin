@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from '@/lib/email/send'
 import { logEmail } from '@/lib/email/log'
 import { adminNotificationEmail } from '@/lib/email/templates'
+import { notifyAdmins } from '@/lib/notifications'
 
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -87,8 +88,17 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Kunne ikke oprette lead' }, { status: 500 })
   }
 
-  // Send admin notification email (non-blocking)
+  // Send in-app notification to admins (non-blocking)
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://kaspermh-admin.vercel.app'
+  void notifyAdmins(
+    supabase,
+    'new_lead',
+    `Nyt lead: ${name}`,
+    `${service || 'Ukendt service'} — ${phone}`,
+    `/leads/${lead.id}`
+  ).catch(err => console.error('[Webhook] In-app notification failed:', err))
+
+  // Send admin notification email (non-blocking)
   const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'kontakt@kaspermh.dk'
 
   void (async () => {

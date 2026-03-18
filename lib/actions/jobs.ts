@@ -7,6 +7,7 @@ import type { QuoteLineItem } from '@/lib/types'
 import { triggerJobCreatedEmail, triggerJobCompletedEmail, triggerInvoiceEmail } from '@/lib/email/triggers'
 import { triggerJobConfirmationSms, triggerEnRouteSms, triggerJobCompletedSms, triggerInvoiceSms } from '@/lib/sms/triggers'
 import { syncContactToDinero, createDineroInvoice, markDineroPaid } from '@/lib/dinero/operations'
+import { notifyAdmins } from '@/lib/notifications'
 
 async function generateJobNumber(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string> {
   const year = new Date().getFullYear()
@@ -105,6 +106,28 @@ export async function updateJobStatus(jobId: string, newStatus: string) {
   if (newStatus === 'completed') {
     void triggerJobCompletedEmail(jobId).catch(err => console.error('[Job] Email trigger failed:', err))
     void triggerJobCompletedSms(jobId).catch(err => console.error('[Job] SMS trigger failed:', err))
+
+    // In-app notification to admins (non-blocking)
+    void (async () => {
+      try {
+        const { data: job } = await supabase
+          .from('jobs')
+          .select('job_number, address')
+          .eq('id', jobId)
+          .single()
+        if (job) {
+          await notifyAdmins(
+            supabase,
+            'job_completed',
+            `Job ${job.job_number} afsluttet`,
+            job.address || 'Ingen adresse',
+            `/jobs/${jobId}`
+          )
+        }
+      } catch (err) {
+        console.error('[Job] In-app notification failed:', err)
+      }
+    })()
   }
 
   revalidatePath(`/jobs/${jobId}`)

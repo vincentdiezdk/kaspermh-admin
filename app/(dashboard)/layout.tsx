@@ -29,7 +29,7 @@ export default async function DashboardLayout({
     <SidebarProvider>
       <AppSidebar user={profile} />
       <SidebarInset>
-        <Header />
+        <Header userId={user.id} />
         <main className="flex-1 p-4 md:p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
