@@ -55,6 +55,39 @@ export function formatPhone(phone: string | null | undefined): string {
   return phone
 }
 
+const DANISH_DAYS = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag']
+const DANISH_MONTHS = [
+  'januar', 'februar', 'marts', 'april', 'maj', 'juni',
+  'juli', 'august', 'september', 'oktober', 'november', 'december',
+]
+
+export function formatDuration(minutes: number | null | undefined): string {
+  if (!minutes) return '–'
+  if (minutes < 60) return `${minutes} min`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m > 0 ? `${h}t ${m}m` : `${h}t`
+}
+
+export function formatDateLong(date: string | null | undefined): string {
+  if (!date) return '–'
+  const d = new Date(date + 'T00:00:00')
+  const day = DANISH_DAYS[d.getDay()]
+  const num = d.getDate()
+  const month = DANISH_MONTHS[d.getMonth()]
+  const year = d.getFullYear()
+  return `${day} ${num}. ${month} ${year}`
+}
+
+export function formatDateShort(date: string | null | undefined): string {
+  if (!date) return '–'
+  const d = new Date(date + 'T00:00:00')
+  const day = DANISH_DAYS[d.getDay()]
+  const num = d.getDate()
+  const month = DANISH_MONTHS[d.getMonth()]
+  return `${day} ${num}. ${month}`
+}
+
 export function unitLabel(unit: string): string {
   switch (unit) {
     case 'm2': return 'm²'
