@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import type { QuoteLineItem } from '@/lib/types'
 import { triggerQuoteSentEmail } from '@/lib/email/triggers'
+import { triggerQuoteSentSms } from '@/lib/sms/triggers'
 
 async function generateQuoteNumber(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string> {
   const year = new Date().getFullYear()
@@ -59,6 +60,7 @@ export async function createQuote(data: {
   // Send quote email if status is 'sent'
   if (data.status === 'sent') {
     void triggerQuoteSentEmail(quote.id).catch(err => console.error('[Quote] Email trigger failed:', err))
+    void triggerQuoteSentSms(quote.id).catch(err => console.error('[Quote] SMS trigger failed:', err))
   }
 
   // If from a lead, update lead status
@@ -92,6 +94,7 @@ export async function updateQuoteStatus(id: string, status: string) {
   // Send quote email when status changes to 'sent'
   if (status === 'sent') {
     void triggerQuoteSentEmail(id).catch(err => console.error('[Quote] Email trigger failed:', err))
+    void triggerQuoteSentSms(id).catch(err => console.error('[Quote] SMS trigger failed:', err))
   }
 
   revalidatePath(`/quotes/${id}`)

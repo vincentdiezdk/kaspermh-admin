@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import type { QuoteLineItem } from '@/lib/types'
 import { triggerJobCreatedEmail, triggerJobCompletedEmail, triggerInvoiceEmail } from '@/lib/email/triggers'
+import { triggerJobConfirmationSms, triggerEnRouteSms, triggerJobCompletedSms, triggerInvoiceSms } from '@/lib/sms/triggers'
 import { syncContactToDinero, createDineroInvoice, markDineroPaid } from '@/lib/dinero/operations'
 
 async function generateJobNumber(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string> {
@@ -68,6 +69,9 @@ export async function createJob(data: {
   // Send job confirmation email (non-blocking)
   void triggerJobCreatedEmail(job.id).catch(err => console.error('[Job] Email trigger failed:', err))
 
+  // Send job confirmation SMS (non-blocking)
+  void triggerJobConfirmationSms(job.id).catch(err => console.error('[Job] SMS trigger failed:', err))
+
   revalidatePath('/jobs')
   revalidatePath('/')
   redirect(`/jobs/${job.id}`)
@@ -80,7 +84,8 @@ export async function updateJobStatus(jobId: string, newStatus: string) {
   const now = new Date().toISOString()
 
   if (newStatus === 'en_route') {
-    // no extra timestamp needed
+    // Send "på vej" SMS (non-blocking)
+    void triggerEnRouteSms(jobId).catch(err => console.error('[Job] SMS trigger failed:', err))
   } else if (newStatus === 'arrived') {
     updateData.arrived_at = now
   } else if (newStatus === 'in_progress') {
@@ -99,6 +104,7 @@ export async function updateJobStatus(jobId: string, newStatus: string) {
   // Send job report email when completed
   if (newStatus === 'completed') {
     void triggerJobCompletedEmail(jobId).catch(err => console.error('[Job] Email trigger failed:', err))
+    void triggerJobCompletedSms(jobId).catch(err => console.error('[Job] SMS trigger failed:', err))
   }
 
   revalidatePath(`/jobs/${jobId}`)
@@ -137,6 +143,9 @@ export async function generateInvoice(jobId: string) {
 
   // Send invoice email (non-blocking)
   void triggerInvoiceEmail(jobId).catch(err => console.error('[Job] Invoice email failed:', err))
+
+  // Send invoice SMS (non-blocking)
+  void triggerInvoiceSms(jobId).catch(err => console.error('[Job] Invoice SMS failed:', err))
 
   // Sync invoice to Dinero (non-blocking)
   void (async () => {

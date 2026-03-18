@@ -5,13 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Building2, CreditCard, Settings, Upload, Image, Link as LinkIcon } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Building2, CreditCard, MessageSquare, Settings, Upload, Image, Link as LinkIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   getCompanySettings,
   updateCompanySettings,
   uploadCompanyLogo,
+  getSmsStatus,
   type CompanySettings,
+  type SmsPreferences,
 } from '@/lib/actions/company'
 import { getDineroStatus } from '@/lib/actions/integrations'
 
@@ -21,6 +24,7 @@ export default function CompanyPage() {
   const [isPending, startTransition] = useTransition()
   const [uploading, setUploading] = useState(false)
   const [dineroStatus, setDineroStatus] = useState<{ configured: boolean; hasClientId: boolean; hasRedirectUri: boolean } | null>(null)
+  const [smsStatus, setSmsStatus] = useState<{ configured: boolean; senderId: string } | null>(null)
 
   useEffect(() => {
     getCompanySettings().then((data) => {
@@ -28,6 +32,7 @@ export default function CompanyPage() {
       setLoading(false)
     })
     getDineroStatus().then(setDineroStatus)
+    getSmsStatus().then(setSmsStatus)
   }, [])
 
   const handleSave = () => {
@@ -63,6 +68,25 @@ export default function CompanyPage() {
 
   const update = (field: keyof CompanySettings, value: string | number) => {
     setSettings((prev) => prev ? { ...prev, [field]: value } : prev)
+  }
+
+  const DEFAULT_SMS_PREFS: SmsPreferences = {
+    job_confirmation: true,
+    en_route: true,
+    job_completed: true,
+    invoice_sent: true,
+    quote_sent: true,
+    payment_reminder: true,
+    job_reminder: true,
+  }
+
+  const smsPrefs: SmsPreferences = settings?.sms_preferences
+    ? { ...DEFAULT_SMS_PREFS, ...settings.sms_preferences }
+    : DEFAULT_SMS_PREFS
+
+  const toggleSmsPref = (key: keyof SmsPreferences) => {
+    const updated = { ...smsPrefs, [key]: !smsPrefs[key] }
+    setSettings((prev) => prev ? { ...prev, sms_preferences: updated } : prev)
   }
 
   if (loading) {
@@ -284,6 +308,79 @@ export default function CompanyPage() {
                 placeholder="Tekst der vises på nye tilbud..."
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* SMS-indstillinger */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <MessageSquare className="h-5 w-5" />
+              SMS-beskeder (Twilio)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Status:</span>
+              {smsStatus?.configured ? (
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-green-600">
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  Aktiv
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full bg-gray-300" />
+                  Ikke konfigureret
+                </span>
+              )}
+            </div>
+
+            {smsStatus?.configured ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Afsender: <span className="font-medium text-foreground">{smsStatus.senderId}</span> (Alphanumeric)
+                </p>
+                <div className="space-y-3">
+                  {([
+                    ['job_confirmation', 'Jobbekræftelse SMS'],
+                    ['en_route', '"På vej" SMS'],
+                    ['job_completed', 'Job afsluttet SMS'],
+                    ['invoice_sent', 'Faktura SMS'],
+                    ['quote_sent', 'Tilbud SMS'],
+                    ['payment_reminder', 'Betalingspåmindelse SMS'],
+                    ['job_reminder', 'Påmindelse dagen før'],
+                  ] as [keyof SmsPreferences, string][]).map(([key, label]) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <Label className="text-sm font-normal">{label}</Label>
+                      <Switch
+                        checked={smsPrefs[key]}
+                        onCheckedChange={() => toggleSmsPref(key)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Når konfigureret, sendes automatiske SMS&apos;er til kunder ved:
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-2 text-sm text-muted-foreground">
+                  <li>Job booket (bekræftelse)</li>
+                  <li>Kasper er på vej</li>
+                  <li>Job afsluttet</li>
+                  <li>Faktura sendt</li>
+                  <li>Tilbud sendt</li>
+                  <li>Betalingspåmindelse</li>
+                </ul>
+                <p className="text-sm text-muted-foreground">
+                  Sæt <code className="rounded bg-muted px-1 py-0.5 text-xs">TWILIO_ACCOUNT_SID</code>,{' '}
+                  <code className="rounded bg-muted px-1 py-0.5 text-xs">TWILIO_AUTH_TOKEN</code> og{' '}
+                  <code className="rounded bg-muted px-1 py-0.5 text-xs">TWILIO_SENDER_ID</code>{' '}
+                  som miljøvariabler i Vercel.
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 

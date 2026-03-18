@@ -108,7 +108,46 @@ Systemet fungerer normalt — emails springes over med en advarsel i loggen.
 
 ---
 
-## 3. Dinero Regnskab
+## 3. Twilio SMS
+
+KasperMH bruger Alphanumeric Sender ID — SMS'er sendes som "KasperMH" (kunden kan ikke svare).
+
+### Opsætning
+1. Opret en Twilio-konto på [twilio.com](https://www.twilio.com)
+2. Find Account SID og Auth Token i Twilio Console
+3. Sæt disse env vars i Vercel:
+   - `TWILIO_ACCOUNT_SID` = dit Account SID
+   - `TWILIO_AUTH_TOKEN` = dit Auth Token
+   - `TWILIO_SENDER_ID` = `KasperMH`
+
+### Alphanumeric Sender ID i Danmark
+- Gratis — intet telefonnummer nødvendigt
+- SMS vises som "KasperMH" hos modtageren
+- Kunden kan IKKE svare på SMS'en (one-way)
+- Max 11 tegn i sender ID
+
+### Hvad sker der automatisk?
+Når Twilio er konfigureret, sender systemet automatisk SMS ved:
+- **Job booket** → Kunden modtager SMS-bekræftelse med dato og tid
+- **Kasper er på vej** → Kunden modtager "på vej" SMS
+- **Job afsluttet** → Kunden modtager SMS om jobraport og faktura
+- **Faktura sendt** → Kunden modtager SMS med fakturanummer og beløb
+- **Tilbud sendt** → Kunden modtager SMS med tilbudsbeløb
+- **Betalingspåmindelse** → Kunden modtager SMS om forfalden faktura
+
+### SMS-indstillinger
+Individuelle SMS-typer kan aktiveres/deaktiveres under **Indstillinger → Virksomhed → SMS-beskeder**.
+
+### Uden Twilio credentials
+Systemet fungerer normalt — SMS'er springes over med en advarsel i loggen.
+
+### Pris
+- ~$0.06 / SMS til danske numre (~0,42 kr)
+- Ved ~50 SMS/md = ~21 kr/md
+
+---
+
+## 4. Dinero Regnskab
 
 ### Opsætning
 1. Opret en integration på [developer.dinero.dk](https://developer.dinero.dk)
@@ -151,6 +190,9 @@ Systemet fungerer normalt — Dinero-kald springes over med en advarsel i loggen
 | `ADMIN_EMAIL` | Kaspers notifikations-email | Nej (default: kontakt@kaspermh.dk) |
 | `LEAD_WEBHOOK_SECRET` | Bearer token for lead webhook | Nej (webhook åben uden) |
 | `NEXT_PUBLIC_APP_URL` | App URL for links i emails | Nej (default: kaspermh-admin.vercel.app) |
+| `TWILIO_ACCOUNT_SID` | Twilio Account SID | Nej (SMS springes over) |
+| `TWILIO_AUTH_TOKEN` | Twilio Auth Token | Nej (SMS springes over) |
+| `TWILIO_SENDER_ID` | Afsender-ID for SMS | Nej (default: KasperMH) |
 | `DINERO_CLIENT_ID` | Dinero OAuth client ID | Nej |
 | `DINERO_CLIENT_SECRET` | Dinero OAuth client secret | Nej |
 | `DINERO_REDIRECT_URI` | Dinero OAuth redirect URI | Nej |

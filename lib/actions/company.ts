@@ -3,6 +3,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
+export interface SmsPreferences {
+  job_confirmation: boolean
+  en_route: boolean
+  job_completed: boolean
+  invoice_sent: boolean
+  quote_sent: boolean
+  payment_reminder: boolean
+  job_reminder: boolean
+}
+
 export interface CompanySettings {
   id: string
   company_name: string
@@ -20,6 +30,7 @@ export interface CompanySettings {
   default_quote_notes: string
   invoice_reminder_days: number
   invoice_due_days: number
+  sms_preferences: SmsPreferences
   updated_at: string
 }
 
@@ -33,6 +44,12 @@ export async function getCompanySettings(): Promise<CompanySettings | null> {
 
   if (error) return null
   return data as CompanySettings
+}
+
+export async function getSmsStatus(): Promise<{ configured: boolean; senderId: string }> {
+  const configured = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN)
+  const senderId = process.env.TWILIO_SENDER_ID || 'KasperMH'
+  return { configured, senderId }
 }
 
 export async function updateCompanySettings(settings: Partial<Omit<CompanySettings, 'id' | 'updated_at'>>) {
