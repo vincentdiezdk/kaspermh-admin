@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import type { QuoteLineItem } from '@/lib/types'
+import { triggerJobCreatedEmail, triggerJobCompletedEmail, triggerInvoiceEmail } from '@/lib/email/triggers'
+import { syncContactToDinero, createDineroInvoice, markDineroPaid } from '@/lib/dinero/operations'
 
 async function generateJobNumber(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string> {
   const year = new Date().getFullYear()
@@ -63,6 +65,9 @@ export async function createJob(data: {
 
   if (error) throw new Error(error.message)
 
+  // Send job confirmation email (non-blocking)
+  void triggerJobCreatedEmail(job.id).catch(err => console.error('[Job] Email trigger failed:', err))
+
   revalidatePath('/jobs')
   revalidatePath('/')
   redirect(`/jobs/${job.id}`)
@@ -90,6 +95,11 @@ export async function updateJobStatus(jobId: string, newStatus: string) {
     .eq('id', jobId)
 
   if (error) throw new Error(error.message)
+
+  // Send job report email when completed
+  if (newStatus === 'completed') {
+    void triggerJobCompletedEmail(jobId).catch(err => console.error('[Job] Email trigger failed:', err))
+  }
 
   revalidatePath(`/jobs/${jobId}`)
   revalidatePath('/jobs')
@@ -125,6 +135,35 @@ export async function generateInvoice(jobId: string) {
 
   if (error) throw new Error(error.message)
 
+  // Send invoice email (non-blocking)
+  void triggerInvoiceEmail(jobId).catch(err => console.error('[Job] Invoice email failed:', err))
+
+  // Sync invoice to Dinero (non-blocking)
+  void (async () => {
+    try {
+      const { data: job } = await supabase
+        .from('jobs')
+        .select('*, customer:customers(*)')
+        .eq('id', jobId)
+        .single()
+      if (!job) return
+      const services = typeof job.services === 'string' ? JSON.parse(job.services) : job.services
+      await createDineroInvoice({
+        invoiceNumber: invoice_number,
+        customerName: job.customer?.full_name || '',
+        customerEmail: job.customer?.email || '',
+        lines: (services as { service_name: string; quantity: number; unit_price: number }[]).map(s => ({
+          description: s.service_name,
+          quantity: s.quantity,
+          unitPrice: s.unit_price,
+        })),
+        dueDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+      })
+    } catch (err) {
+      console.error('[Dinero] Invoice sync failed:', err)
+    }
+  })()
+
   revalidatePath(`/jobs/${jobId}`)
   revalidatePath('/jobs')
   revalidatePath('/')
@@ -134,12 +173,27 @@ export async function markJobPaid(jobId: string) {
   const supabase = await createClient()
   const now = new Date().toISOString()
 
+  // Get job total for Dinero
+  const { data: job } = await supabase
+    .from('jobs')
+    .select('total_amount')
+    .eq('id', jobId)
+    .single()
+
   const { error } = await supabase
     .from('jobs')
     .update({ paid_at: now })
     .eq('id', jobId)
 
   if (error) throw new Error(error.message)
+
+  // Sync payment to Dinero (non-blocking) — needs dineroInvoiceGuid which we don't store yet
+  // This is prepared for when Dinero integration is fully connected
+  if (job?.total_amount) {
+    void markDineroPaid('', job.total_amount, now.split('T')[0]).catch(err =>
+      console.error('[Dinero] Payment sync failed:', err)
+    )
+  }
 
   revalidatePath(`/jobs/${jobId}`)
   revalidatePath('/jobs')

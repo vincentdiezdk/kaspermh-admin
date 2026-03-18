@@ -30,7 +30,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Public routes
-  const publicRoutes = ['/login', '/invite', '/api/webhooks', '/api/accept-quote']
+  const publicRoutes = ['/login', '/invite', '/api/webhooks', '/api/accept-quote', '/api/dinero']
   const isPublicRoute = publicRoutes.some((route) =>
     request.nextUrl.pathname.startsWith(route)
   )

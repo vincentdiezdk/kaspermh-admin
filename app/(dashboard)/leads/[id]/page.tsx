@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LeadStatusBadge } from '@/components/leads/lead-status-badge'
+import { LeadSourceBadge } from '@/components/leads/lead-source-badge'
 import { LeadStatusSelect } from '@/components/leads/lead-status-select'
 import { LeadNotesForm } from '@/components/leads/lead-notes-form'
 import { LeadActions } from '@/components/leads/lead-actions'
@@ -71,7 +72,10 @@ export default async function LeadDetailPage({
                 </div>
               </div>
             </div>
-            <LeadStatusBadge status={lead.status as LeadStatus} />
+            <div className="flex items-center gap-2">
+              <LeadSourceBadge source={lead.source} />
+              <LeadStatusBadge status={lead.status as LeadStatus} />
+            </div>
           </div>
         </CardContent>
       </Card>

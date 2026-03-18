@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Building2, CreditCard, Settings, Upload, Image } from 'lucide-react'
+import { Building2, CreditCard, Settings, Upload, Image, Link as LinkIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   getCompanySettings,
@@ -13,18 +13,21 @@ import {
   uploadCompanyLogo,
   type CompanySettings,
 } from '@/lib/actions/company'
+import { getDineroStatus } from '@/lib/actions/integrations'
 
 export default function CompanyPage() {
   const [settings, setSettings] = useState<CompanySettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
   const [uploading, setUploading] = useState(false)
+  const [dineroStatus, setDineroStatus] = useState<{ configured: boolean; hasClientId: boolean; hasRedirectUri: boolean } | null>(null)
 
   useEffect(() => {
     getCompanySettings().then((data) => {
       setSettings(data)
       setLoading(false)
     })
+    getDineroStatus().then(setDineroStatus)
   }, [])
 
   const handleSave = () => {
@@ -281,6 +284,56 @@ export default function CompanyPage() {
                 placeholder="Tekst der vises på nye tilbud..."
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Dinero Integration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <LinkIcon className="h-5 w-5" />
+              Dinero Regnskab
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Status:</span>
+              {dineroStatus?.configured ? (
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-green-600">
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  Forbundet
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full bg-gray-300" />
+                  Ikke forbundet
+                </span>
+              )}
+            </div>
+            {!dineroStatus?.configured && (
+              <>
+                {dineroStatus?.hasClientId && dineroStatus?.hasRedirectUri ? (
+                  <a
+                    href="/api/dinero/connect"
+                    className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+                  >
+                    Forbind Dinero
+                  </a>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Sæt DINERO_CLIENT_ID og DINERO_CLIENT_SECRET i Vercel miljøvariabler for at aktivere.
+                  </p>
+                )}
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>Når du forbinder Dinero, vil systemet automatisk:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Synkronisere kontakter</li>
+                    <li>Eksportere fakturaer til bogføring</li>
+                    <li>Registrere betalinger</li>
+                  </ul>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

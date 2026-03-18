@@ -5,6 +5,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { LeadStatusBadge } from '@/components/leads/lead-status-badge'
+import { LeadSourceBadge } from '@/components/leads/lead-source-badge'
 import { formatDate, formatPriceShort } from '@/lib/format'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
@@ -138,6 +139,7 @@ export default async function LeadsPage({
                   <TableHead className="hidden sm:table-cell">Telefon</TableHead>
                   <TableHead className="hidden md:table-cell">Service</TableHead>
                   <TableHead className="hidden md:table-cell">Est. pris</TableHead>
+                  <TableHead className="hidden lg:table-cell">Kilde</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Handling</TableHead>
                 </TableRow>
@@ -157,6 +159,9 @@ export default async function LeadsPage({
                     <TableCell className="hidden md:table-cell">{lead.service_type || '–'}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       {formatPriceShort(lead.calculated_price)}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <LeadSourceBadge source={lead.source} />
                     </TableCell>
                     <TableCell>
                       <LeadStatusBadge status={lead.status as LeadStatus} />

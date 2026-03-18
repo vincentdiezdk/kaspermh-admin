@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { triggerQuoteAcceptedEmail } from '@/lib/email/triggers'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -88,6 +89,11 @@ export async function GET(request: Request) {
     services: lineItems,
     created_by: quote.created_by,
   })
+
+  // Send confirmation + admin notification emails (non-blocking)
+  void triggerQuoteAcceptedEmail(quote.id, quote.customer_id).catch(err =>
+    console.error('[Accept Quote] Email trigger failed:', err)
+  )
 
   return html('Tak!', 'Dit tilbud er accepteret. Vi kontakter dig snart med en dato.')
 }

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { syncContactToDinero } from '@/lib/dinero/operations'
 
 export async function createCustomer(formData: FormData) {
   const supabase = await createClient()
@@ -25,6 +26,16 @@ export async function createCustomer(formData: FormData) {
     .single()
 
   if (error) throw new Error(error.message)
+
+  // Sync to Dinero (non-blocking)
+  void syncContactToDinero({
+    name: data.full_name,
+    email: data.email || '',
+    phone: data.phone,
+    address: data.address,
+    postalCode: data.zip_code,
+    city: data.city,
+  }).catch(err => console.error('[Dinero] Contact sync failed:', err))
 
   revalidatePath('/customers')
 
