@@ -11,6 +11,7 @@ import {
   AlertCircle,
   AlertTriangle,
   Download,
+  Package,
 } from 'lucide-react'
 import {
   BarChart,
@@ -33,6 +34,7 @@ import {
   getTopCustomers,
   type ReportKPIs,
 } from '@/lib/actions/reports'
+import { getMaterialCostForPeriod, getLowStockCount } from '@/lib/actions/materials'
 import { exportJobsCSV } from '@/lib/actions/export'
 
 const DANISH_MONTHS = [
@@ -93,6 +95,8 @@ export default function ReportsPage() {
   const [serviceData, setServiceData] = useState<{ name: string; count: number; color: string }[]>([])
   const [funnelData, setFunnelData] = useState<{ stage: string; count: number }[]>([])
   const [topCustomers, setTopCustomers] = useState<{ name: string; jobCount: number; revenue: number; lastJob: string }[]>([])
+  const [materialCost, setMaterialCost] = useState({ totalCost: 0, count: 0 })
+  const [lowStockCount, setLowStockCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -105,12 +109,16 @@ export default function ReportsPage() {
       getJobsByServiceType(start, end),
       getConversionFunnel(start, end),
       getTopCustomers(start, end),
-    ]).then(([k, m, s, f, tc]) => {
+      getMaterialCostForPeriod(start, end),
+      getLowStockCount(),
+    ]).then(([k, m, s, f, tc, mc, lsc]) => {
       setKpis(k)
       setMonthlyRevenue(m)
       setServiceData(s)
       setFunnelData(f)
       setTopCustomers(tc)
+      setMaterialCost(mc)
+      setLowStockCount(lsc)
       setLoading(false)
     })
   }, [dateRange])
@@ -230,6 +238,36 @@ export default function ReportsPage() {
                 )}
               </CardContent>
             </Card>
+          </div>
+
+          {/* Material KPIs */}
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                  <Package className="h-4 w-4" />
+                  Materialeomkostninger
+                </div>
+                <p className="text-xl font-bold">{formatKr(materialCost.totalCost)}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {materialCost.count} registreringer
+                </p>
+              </CardContent>
+            </Card>
+            {lowStockCount > 0 && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 text-sm text-amber-600 mb-1">
+                    <AlertTriangle className="h-4 w-4" />
+                    Lavt lager
+                  </div>
+                  <p className="text-xl font-bold text-amber-600">{lowStockCount}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    materialer under grænsen
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Charts */}

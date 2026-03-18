@@ -13,6 +13,7 @@ import { ArrowLeft, Pencil, User, Phone, Mail, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import type { LeadStatus, QuoteStatus } from '@/lib/types'
 import { RecurringTemplates } from '@/components/customers/recurring-templates'
+import { SendPortalLinkButton } from '@/components/customers/send-portal-link-button'
 
 export default async function CustomerDetailPage({
   params,
@@ -53,12 +54,15 @@ export default async function CustomerDetailPage({
           <ArrowLeft className="h-4 w-4" />
           Tilbage til kunder
         </Link>
-        <Link href={`/customers/${id}/edit`}>
-          <Button variant="outline" className="gap-2">
-            <Pencil className="h-4 w-4" />
-            Rediger
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <SendPortalLinkButton customerId={id} hasEmail={!!customer.email} />
+          <Link href={`/customers/${id}/edit`}>
+            <Button variant="outline" className="gap-2">
+              <Pencil className="h-4 w-4" />
+              Rediger
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Customer info */}

@@ -9,6 +9,7 @@ import { JobStatusBadge } from '@/components/jobs/job-status-badge'
 import { PhotoUpload } from '@/components/jobs/photo-upload'
 import { formatTime, formatDuration, formatDateLong, formatPriceShort, formatPhone, unitLabel } from '@/lib/format'
 import { updateJobStatus, updateJobNotes, generateInvoice, markJobPaid, toggleAutoReminders } from '@/lib/actions/jobs'
+import { JobMaterials } from '@/components/jobs/job-materials'
 import { ArrowLeft, MapPin, Phone, Calendar, Car, Clock, FileText, Loader2, Download, AlertTriangle, Bell, BellOff } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -253,6 +254,9 @@ export default function JobDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Materials */}
+        <JobMaterials jobId={jobId} />
 
         {/* Schedule details */}
         <Card>

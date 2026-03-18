@@ -14,6 +14,11 @@ export default function SettingsPage() {
       href: '/settings/vehicles',
     },
     {
+      title: 'Materialer',
+      description: 'Administrer materialer og lagerbeholdning',
+      href: '/settings/materials',
+    },
+    {
       title: 'Virksomhed',
       description: 'Firmaoplysninger, logo og betalingsinfo',
       href: '/settings/company',
