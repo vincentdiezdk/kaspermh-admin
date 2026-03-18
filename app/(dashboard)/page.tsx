@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { JobStatusBadge } from '@/components/jobs/job-status-badge'
-import { ClipboardList, Wrench, FileText, CreditCard, MapPin, ArrowRight } from 'lucide-react'
+import { ClipboardList, Wrench, FileText, CreditCard, MapPin, ArrowRight, AlertTriangle } from 'lucide-react'
 import { formatPriceShort, formatDate, formatTime, formatDateShort } from '@/lib/format'
 import Link from 'next/link'
 import type { JobStatus } from '@/lib/types'
@@ -60,16 +60,22 @@ export default async function DashboardPage() {
   // Calculate unpaid total from invoiced jobs
   const { data: unpaidJobsList } = await supabase
     .from('jobs')
-    .select('services')
+    .select('services, invoice_sent_at')
     .or('status.eq.invoiced,status.eq.completed')
     .is('paid_at', null)
 
   let unpaidTotal = 0
+  let overdueCount = 0
+  const now = Date.now()
   if (unpaidJobsList) {
     for (const j of unpaidJobsList) {
       const services = typeof j.services === 'string' ? JSON.parse(j.services) : j.services
       if (Array.isArray(services)) {
         unpaidTotal += services.reduce((sum: number, s: { line_total: number }) => sum + (s.line_total || 0), 0)
+      }
+      if (j.invoice_sent_at) {
+        const days = Math.floor((now - new Date(j.invoice_sent_at).getTime()) / (1000 * 60 * 60 * 24))
+        if (days > 14) overdueCount++
       }
     }
   }
@@ -124,6 +130,12 @@ export default async function DashboardPage() {
               <div>
                 <p className="text-2xl font-bold">{formatPriceShort(unpaidTotal)}</p>
                 <p className="text-sm text-muted-foreground">ubetalt</p>
+                {overdueCount > 0 && (
+                  <p className="text-xs text-amber-600 font-medium flex items-center gap-1 mt-0.5">
+                    <AlertTriangle className="h-3 w-3" />
+                    {overdueCount} forfalden{overdueCount !== 1 ? 'e' : ''}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

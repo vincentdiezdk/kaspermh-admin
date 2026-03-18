@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Printer } from 'lucide-react'
+import { ArrowLeft, Printer, Download } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
@@ -19,13 +19,23 @@ export function InvoiceClient({ children }: { children: React.ReactNode }) {
             Tilbage til job
           </Button>
         </Link>
-        <Button
-          onClick={() => window.print()}
-          className="gap-2 bg-green-600 hover:bg-green-700 text-white min-h-[44px]"
-        >
-          <Printer className="h-4 w-4" />
-          Print / Gem som PDF
-        </Button>
+        <div className="flex items-center gap-2">
+          <a
+            href={`/api/pdf/invoice/${jobId}`}
+            download
+            className="inline-flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted text-sm font-medium h-8 px-2.5 gap-2 min-h-[44px] transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Download PDF
+          </a>
+          <Button
+            onClick={() => window.print()}
+            className="gap-2 bg-green-600 hover:bg-green-700 text-white min-h-[44px]"
+          >
+            <Printer className="h-4 w-4" />
+            Print
+          </Button>
+        </div>
       </div>
 
       {children}

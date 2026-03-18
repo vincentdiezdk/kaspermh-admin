@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { JobStatusBadge } from '@/components/jobs/job-status-badge'
 import { formatTime, formatPriceShort, unitLabel } from '@/lib/format'
 import { createJob } from '@/lib/actions/jobs'
-import { Plus, ChevronLeft, ChevronRight, List, CalendarDays, Clock, MapPin, Search, X, Download } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, List, CalendarDays, Clock, MapPin, Search, X, Download, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { exportJobsCSV } from '@/lib/actions/export'
 import type { Job, JobStatus, QuoteLineItem, Service } from '@/lib/types'
@@ -19,6 +19,9 @@ type ViewMode = 'list' | 'week' | 'day'
 
 type JobWithCustomer = Omit<Job, 'customer'> & {
   customer?: { full_name: string } | null
+  invoice_sent_at?: string | null
+  paid_at?: string | null
+  invoice_number?: string | null
 }
 
 function getMonday(date: Date): Date {
@@ -458,12 +461,16 @@ function JobCard({ job }: { job: JobWithCustomer }) {
     ? (job.services as QuoteLineItem[]).map((s) => s.service_name).join(', ')
     : ''
 
+  const isOverdue = job.status === 'invoiced' && !job.paid_at && job.invoice_sent_at &&
+    Math.floor((Date.now() - new Date(job.invoice_sent_at).getTime()) / (1000 * 60 * 60 * 24)) > 14
+
   return (
     <Link href={`/jobs/${job.id}`}>
-      <Card className="hover:ring-2 hover:ring-green-600/20 transition-all cursor-pointer">
+      <Card className={`hover:ring-2 hover:ring-green-600/20 transition-all cursor-pointer ${isOverdue ? 'border-amber-300' : ''}`}>
         <CardContent className="flex items-center justify-between p-3">
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center gap-2">
+              {isOverdue && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
               {job.scheduled_time && (
                 <span className="text-sm font-bold tabular-nums">{formatTime(job.scheduled_time)}</span>
               )}

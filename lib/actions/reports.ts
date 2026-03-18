@@ -9,6 +9,7 @@ export interface ReportKPIs {
   conversionRate: number
   unpaidAmount: number
   unpaidCount: number
+  overdueCount: number
   ytdRevenue: number
   ytdJobCount: number
 }
@@ -57,12 +58,20 @@ export async function getReportKPIs(startDate: string, endDate: string): Promise
   // Unpaid invoices (all time)
   const { data: unpaidJobs } = await supabase
     .from('jobs')
-    .select('total_amount')
+    .select('total_amount, invoice_sent_at')
     .eq('status', 'invoiced')
     .is('paid_at', null)
 
   const unpaidAmount = (unpaidJobs || []).reduce((sum, j) => sum + (Number(j.total_amount) || 0), 0)
   const unpaidCount = (unpaidJobs || []).length
+
+  // Overdue: invoiced more than 14 days ago and not paid
+  const now = Date.now()
+  const overdueCount = (unpaidJobs || []).filter(j => {
+    if (!j.invoice_sent_at) return false
+    const days = Math.floor((now - new Date(j.invoice_sent_at).getTime()) / (1000 * 60 * 60 * 24))
+    return days > 14
+  }).length
 
   return {
     revenue,
@@ -71,6 +80,7 @@ export async function getReportKPIs(startDate: string, endDate: string): Promise
     conversionRate,
     unpaidAmount,
     unpaidCount,
+    overdueCount,
     ytdRevenue,
     ytdJobCount,
   }

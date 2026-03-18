@@ -232,6 +232,19 @@ export async function markJobPaid(jobId: string) {
   revalidatePath('/')
 }
 
+export async function toggleAutoReminders(jobId: string, enabled: boolean) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('jobs')
+    .update({ auto_reminders_enabled: enabled })
+    .eq('id', jobId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/jobs/${jobId}`)
+}
+
 export async function deleteJobPhoto(photoId: string, storagePath: string, jobId: string) {
   const supabase = await createClient()
 

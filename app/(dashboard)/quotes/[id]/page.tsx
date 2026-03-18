@@ -8,7 +8,7 @@ import { QuoteStatusBadge } from '@/components/quotes/quote-status-badge'
 import { QuoteActions } from '@/components/quotes/quote-actions'
 import { formatDate, formatPrice } from '@/lib/format'
 import { unitLabel } from '@/lib/format'
-import { ArrowLeft, User, MapPin } from 'lucide-react'
+import { ArrowLeft, User, MapPin, Download } from 'lucide-react'
 import Link from 'next/link'
 import type { QuoteStatus, QuoteLineItem } from '@/lib/types'
 
@@ -53,7 +53,17 @@ export default async function QuoteDetailPage({
                 {quote.valid_until && <p>Gyldig til: {formatDate(quote.valid_until)}</p>}
               </div>
             </div>
-            <QuoteStatusBadge status={quote.status as QuoteStatus} />
+            <div className="flex items-center gap-2">
+              <a
+                href={`/api/pdf/quote/${quote.id}`}
+                download={`tilbud-${quote.quote_number}.pdf`}
+                className="inline-flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted text-sm font-medium h-8 px-2.5 gap-1.5 min-h-[44px] transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                Download PDF
+              </a>
+              <QuoteStatusBadge status={quote.status as QuoteStatus} />
+            </div>
           </div>
         </CardContent>
       </Card>

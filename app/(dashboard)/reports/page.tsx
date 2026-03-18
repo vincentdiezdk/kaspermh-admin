@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Percent,
   AlertCircle,
+  AlertTriangle,
   Download,
 } from 'lucide-react'
 import {
@@ -221,6 +222,12 @@ export default function ReportsPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   {kpis?.unpaidCount || 0} fakturaer
                 </p>
+                {(kpis?.overdueCount || 0) > 0 && (
+                  <p className="text-xs text-amber-600 font-medium flex items-center gap-1 mt-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {kpis?.overdueCount} forfalden{kpis?.overdueCount !== 1 ? 'e' : ''}
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>

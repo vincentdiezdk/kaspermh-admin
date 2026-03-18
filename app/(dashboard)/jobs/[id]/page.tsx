@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button'
 import { JobStatusBadge } from '@/components/jobs/job-status-badge'
 import { PhotoUpload } from '@/components/jobs/photo-upload'
 import { formatTime, formatDuration, formatDateLong, formatPriceShort, formatPhone, unitLabel } from '@/lib/format'
-import { updateJobStatus, updateJobNotes, generateInvoice, markJobPaid } from '@/lib/actions/jobs'
-import { ArrowLeft, MapPin, Phone, Calendar, Car, Clock, FileText, Loader2 } from 'lucide-react'
+import { updateJobStatus, updateJobNotes, generateInvoice, markJobPaid, toggleAutoReminders } from '@/lib/actions/jobs'
+import { ArrowLeft, MapPin, Phone, Calendar, Car, Clock, FileText, Loader2, Download, AlertTriangle, Bell, BellOff } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import type { JobStatus, QuoteLineItem } from '@/lib/types'
@@ -32,6 +32,10 @@ interface JobDetail {
   invoice_number: string | null
   invoice_sent_at: string | null
   paid_at: string | null
+  auto_reminders_enabled: boolean
+  reminder_1_sent_at: string | null
+  reminder_2_sent_at: string | null
+  reminder_3_sent_at: string | null
   started_at: string | null
   arrived_at: string | null
   completed_at: string | null
@@ -334,22 +338,88 @@ export default function JobDetailPage() {
         {/* Invoice link */}
         {job.invoice_number && (
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm">
                   <FileText className="h-4 w-4 text-muted-foreground" />
                   <span>Faktura: <strong>{job.invoice_number}</strong></span>
+                  {!job.paid_at && job.invoice_sent_at && (() => {
+                    const days = Math.floor((Date.now() - new Date(job.invoice_sent_at).getTime()) / (1000 * 60 * 60 * 24))
+                    if (days > 14) return (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                        <AlertTriangle className="h-3 w-3" />
+                        Forfalden ({days} dage)
+                      </span>
+                    )
+                    return null
+                  })()}
                 </div>
-                <Link href={`/jobs/${jobId}/invoice`}>
-                  <Button variant="outline" size="sm" className="min-h-[44px]">
-                    Se faktura
-                  </Button>
-                </Link>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`/api/pdf/invoice/${jobId}`}
+                    download={`faktura-${job.invoice_number}.pdf`}
+                    className="inline-flex items-center justify-center rounded-lg border border-border bg-background hover:bg-muted text-sm font-medium h-7 px-2.5 gap-1 min-h-[44px] transition-colors"
+                  >
+                    <Download className="h-3 w-3" />
+                    PDF
+                  </a>
+                  <Link href={`/jobs/${jobId}/invoice`}>
+                    <Button variant="outline" size="sm" className="min-h-[44px]">
+                      Se faktura
+                    </Button>
+                  </Link>
+                </div>
               </div>
               {job.paid_at && (
-                <p className="text-sm text-green-600 font-medium mt-2">
+                <p className="text-sm text-green-600 font-medium">
                   Betalt {new Date(job.paid_at).toLocaleDateString('da-DK')}
                 </p>
+              )}
+              {!job.paid_at && (
+                <div className="flex items-center justify-between border-t pt-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    {job.auto_reminders_enabled ? (
+                      <Bell className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <BellOff className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <span>Automatiske rykkere</span>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await toggleAutoReminders(jobId, !job.auto_reminders_enabled)
+                        await fetchJob()
+                        toast.success(job.auto_reminders_enabled ? 'Automatiske rykkere deaktiveret' : 'Automatiske rykkere aktiveret')
+                      } catch {
+                        toast.error('Fejl ved opdatering')
+                      }
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      job.auto_reminders_enabled ? 'bg-green-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        job.auto_reminders_enabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              )}
+              {/* Show reminder history */}
+              {(job.reminder_1_sent_at || job.reminder_2_sent_at || job.reminder_3_sent_at) && (
+                <div className="text-xs text-muted-foreground space-y-0.5 border-t pt-2">
+                  {job.reminder_1_sent_at && (
+                    <p>1. rykker sendt: {new Date(job.reminder_1_sent_at).toLocaleDateString('da-DK')}</p>
+                  )}
+                  {job.reminder_2_sent_at && (
+                    <p>2. rykker sendt: {new Date(job.reminder_2_sent_at).toLocaleDateString('da-DK')}</p>
+                  )}
+                  {job.reminder_3_sent_at && (
+                    <p>3. rykker sendt: {new Date(job.reminder_3_sent_at).toLocaleDateString('da-DK')}</p>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
