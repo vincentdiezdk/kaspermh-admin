@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { syncContactToDinero } from '@/lib/dinero/operations'
+import { geocodeAddress } from '@/lib/geocode'
 
 export async function createCustomer(formData: FormData) {
   const supabase = await createClient()
@@ -37,6 +38,9 @@ export async function createCustomer(formData: FormData) {
     city: data.city,
   }).catch(err => console.error('[Dinero] Contact sync failed:', err))
 
+  // Geocode address (non-blocking, fire-and-forget)
+  void geocodeAndUpdate(customer.id, `${data.address}, ${data.zip_code} ${data.city}`)
+
   revalidatePath('/customers')
 
   const redirectTo = formData.get('redirect_to') as string
@@ -68,7 +72,25 @@ export async function updateCustomer(id: string, formData: FormData) {
 
   if (error) throw new Error(error.message)
 
+  // Geocode address (non-blocking, fire-and-forget)
+  void geocodeAndUpdate(id, `${data.address}, ${data.zip_code} ${data.city}`)
+
   revalidatePath(`/customers/${id}`)
   revalidatePath('/customers')
   redirect(`/customers/${id}`)
+}
+
+async function geocodeAndUpdate(customerId: string, fullAddress: string) {
+  try {
+    const coords = await geocodeAddress(fullAddress)
+    if (!coords) return
+
+    const supabase = await createClient()
+    await supabase
+      .from('customers')
+      .update({ lat: coords.lat, lng: coords.lng })
+      .eq('id', customerId)
+  } catch (err) {
+    console.error('[Geocode] Failed to geocode customer address:', err)
+  }
 }

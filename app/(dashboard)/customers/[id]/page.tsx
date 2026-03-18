@@ -12,6 +12,7 @@ import { formatDate, formatPrice, formatPhone } from '@/lib/format'
 import { ArrowLeft, Pencil, User, Phone, Mail, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import type { LeadStatus, QuoteStatus } from '@/lib/types'
+import { RecurringTemplates } from '@/components/customers/recurring-templates'
 
 export default async function CustomerDetailPage({
   params,
@@ -34,10 +35,12 @@ export default async function CustomerDetailPage({
     { data: leads },
     { data: quotes },
     { data: jobs },
+    { data: recurringTemplates },
   ] = await Promise.all([
     supabase.from('leads').select('*').eq('converted_customer_id', id).order('created_at', { ascending: false }),
     supabase.from('quotes').select('*').eq('customer_id', id).order('created_at', { ascending: false }),
     supabase.from('jobs').select('*').eq('customer_id', id).order('scheduled_date', { ascending: false }),
+    supabase.from('recurring_templates').select('*, service:services(name), assigned_user:profiles(full_name), vehicle:vehicles(name, license_plate)').eq('customer_id', id).order('next_job_date', { ascending: true }),
   ])
 
   return (
@@ -91,6 +94,9 @@ export default async function CustomerDetailPage({
           )}
         </CardContent>
       </Card>
+
+      {/* Recurring templates */}
+      <RecurringTemplates customerId={id} initialTemplates={recurringTemplates || []} />
 
       {/* Tabs */}
       <Tabs defaultValue="leads">

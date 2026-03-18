@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { JobStatusBadge } from '@/components/jobs/job-status-badge'
 import { formatTime, formatPriceShort, unitLabel } from '@/lib/format'
 import { createJob } from '@/lib/actions/jobs'
-import { Plus, ChevronLeft, ChevronRight, List, CalendarDays, Clock, MapPin, Search, X, Download, AlertTriangle } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, List, CalendarDays, Clock, MapPin, Search, X, Download, AlertTriangle, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { exportJobsCSV } from '@/lib/actions/export'
 import type { Job, JobStatus, QuoteLineItem, Service } from '@/lib/types'
@@ -22,6 +22,7 @@ type JobWithCustomer = Omit<Job, 'customer'> & {
   invoice_sent_at?: string | null
   paid_at?: string | null
   invoice_number?: string | null
+  recurring_template_id?: string | null
 }
 
 function getMonday(date: Date): Date {
@@ -471,6 +472,11 @@ function JobCard({ job }: { job: JobWithCustomer }) {
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center gap-2">
               {isOverdue && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+              {job.recurring_template_id && (
+                <span title="Gentaget job">
+                  <RefreshCw className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                </span>
+              )}
               {job.scheduled_time && (
                 <span className="text-sm font-bold tabular-nums">{formatTime(job.scheduled_time)}</span>
               )}

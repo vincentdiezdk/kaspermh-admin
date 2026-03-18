@@ -1,15 +1,15 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { JobStatusBadge } from '@/components/jobs/job-status-badge'
 import { formatTime } from '@/lib/format'
-import { MapPin, Navigation, Route } from 'lucide-react'
+import { MapPin, Navigation, Route, Zap } from 'lucide-react'
 import Link from 'next/link'
 import type { JobStatus } from '@/lib/types'
+import { getOptimizedRoute } from '@/app/actions/route-planning'
 
 interface RouteJob {
   id: string
@@ -25,37 +25,33 @@ export default function RoutePlannerPage() {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0])
   const [jobs, setJobs] = useState<RouteJob[]>([])
   const [loading, setLoading] = useState(true)
+  const [totalDistanceKm, setTotalDistanceKm] = useState<number | null>(null)
+  const [totalDurationMin, setTotalDurationMin] = useState<number | null>(null)
+  const [googleMapsUrl, setGoogleMapsUrl] = useState<string | null>(null)
+  const [optimized, setOptimized] = useState(false)
 
-  const fetchJobs = useCallback(async () => {
+  const fetchRoute = useCallback(async () => {
     setLoading(true)
-    const supabase = createClient()
-    const { data } = await supabase
-      .from('jobs')
-      .select('id, job_number, scheduled_time, address, status, services, customer:customers(full_name)')
-      .eq('scheduled_date', selectedDate)
-      .neq('status', 'cancelled')
-      .order('scheduled_time', { ascending: true })
-
-    setJobs((data as unknown as RouteJob[]) || [])
+    try {
+      const result = await getOptimizedRoute(selectedDate)
+      setJobs(result.jobs as unknown as RouteJob[])
+      setTotalDistanceKm(result.totalDistanceKm)
+      setTotalDurationMin(result.totalDurationMin)
+      setGoogleMapsUrl(result.googleMapsUrl)
+      setOptimized(result.optimized)
+    } catch {
+      setJobs([])
+      setTotalDistanceKm(null)
+      setTotalDurationMin(null)
+      setGoogleMapsUrl(null)
+      setOptimized(false)
+    }
     setLoading(false)
   }, [selectedDate])
 
   useEffect(() => {
-    fetchJobs()
-  }, [fetchJobs])
-
-  function getGoogleMapsMultiUrl(): string {
-    if (jobs.length === 0) return '#'
-    if (jobs.length === 1) {
-      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(jobs[0].address)}`
-    }
-    const lastJob = jobs[jobs.length - 1]
-    const waypoints = jobs
-      .slice(0, -1)
-      .map((j) => encodeURIComponent(j.address))
-      .join('|')
-    return `https://www.google.com/maps/dir/?api=1&origin=current+location&destination=${encodeURIComponent(lastJob.address)}&waypoints=${waypoints}`
-  }
+    fetchRoute()
+  }, [fetchRoute])
 
   function getServiceNames(services: unknown): string {
     if (!services) return ''
@@ -71,16 +67,24 @@ export default function RoutePlannerPage() {
         <p className="text-muted-foreground">Planlæg optimale ruter for dagens jobs</p>
       </div>
 
-      {/* Date picker + start all button */}
+      {/* Date picker + route info */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="w-auto"
-        />
-        {jobs.length > 0 && (
-          <a href={getGoogleMapsMultiUrl()} target="_blank" rel="noopener noreferrer">
+        <div className="flex items-center gap-3">
+          <Input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="w-auto"
+          />
+          {optimized && (
+            <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
+              <Zap className="h-3 w-3" />
+              Optimeret
+            </span>
+          )}
+        </div>
+        {googleMapsUrl && jobs.length > 0 && (
+          <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
             <Button className="gap-2 bg-green-600 hover:bg-green-700 text-white min-h-[44px]">
               <Route className="h-4 w-4" />
               Start alle ({jobs.length} stop)
@@ -88,6 +92,15 @@ export default function RoutePlannerPage() {
           </a>
         )}
       </div>
+
+      {/* Distance/duration summary */}
+      {(totalDistanceKm !== null || totalDurationMin !== null) && (
+        <div className="text-sm font-medium text-muted-foreground">
+          {totalDistanceKm !== null && <span>{totalDistanceKm} km</span>}
+          {totalDistanceKm !== null && totalDurationMin !== null && <span> · </span>}
+          {totalDurationMin !== null && <span>ca. {totalDurationMin} min køretid</span>}
+        </div>
+      )}
 
       {/* Job list */}
       {loading ? (

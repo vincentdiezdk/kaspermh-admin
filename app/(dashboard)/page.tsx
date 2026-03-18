@@ -6,6 +6,7 @@ import { ClipboardList, Wrench, FileText, CreditCard, MapPin, ArrowRight, AlertT
 import { formatPriceShort, formatDate, formatTime, formatDateShort } from '@/lib/format'
 import Link from 'next/link'
 import type { JobStatus } from '@/lib/types'
+import { TodaysRoute } from '@/components/dashboard/todays-route'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -198,6 +199,9 @@ export default async function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Today's route */}
+      <TodaysRoute />
 
       {/* Coming up - next 3 days */}
       <Card>
